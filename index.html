@@ -42,17 +42,19 @@
   .why a { font-weight: 600; white-space: nowrap; }
 
   /* 残り */
-  .remain { text-align: center; padding: 56px 20px 0; }
+  .remain { text-align: center; padding: 28px 20px 0; }
   .remain .label { font-size: 16px; color: #8e8e93; }
   .remain .num { font-size: 88px; font-weight: 700; letter-spacing: -2px; line-height: 1.05; margin-top: 6px; }
   .remain .num small { font-size: 24px; font-weight: 600; letter-spacing: 0; margin-left: 4px; }
   .remain .sub { font-size: 16px; color: #8e8e93; margin-top: 6px; }
-  .split { margin: 44px 24px 0; }
-  .split .track { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #e5e5ea; }
-  .split .study { background: #2f6fde; }
-  .split .review { background: #9db8ef; }
-  .split .legend { display: flex; justify-content: space-between; font-size: 13px; color: #8e8e93; margin-top: 8px; }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 5px; vertical-align: 1px; }
+  .ring { position: relative; width: 280px; height: 280px; margin: 20px auto 0; }
+  .ring svg { display: block; }
+  .ring .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .a { font-size: 16px; color: #8e8e93; }
+  .ring .num { font-size: 72px; margin-top: 0; }
+  .ring .of { font-size: 14px; color: #8e8e93; margin-top: 2px; }
+  .usedline { font-size: 16px; color: #3a3a3c; margin-top: 18px; }
+  .usedline b { font-weight: 700; }
 
   /* 進み具合 */
   .week { margin: 18px 20px 0; font-size: 18px; font-weight: 600; }
@@ -281,8 +283,8 @@ const ICON = {
 };
 
 // ---------- 画面の状態 ----------
-const TABS = ['today', 'remain', 'progress'];
-let view = 'today', preset = 'start', sheet = null;
+const TABS = ['remain', 'today', 'progress'];
+let view = 'remain', preset = 'start', sheet = null;
 const params = new URLSearchParams(location.search);
 if (params.get('view')) view = params.get('view');
 if (params.get('preset')) preset = params.get('preset');
@@ -292,7 +294,7 @@ applyPreset(preset);
 
 function bar() {
   if (!showBar) return '';
-  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', today: '今日', remain: '残り', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
+  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', remain: '残り', today: '今日', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
   return `<div class="bar">
     <div class="row">画面 <select id="v">${Object.entries(views).map(([k, l]) => `<option value="${k}" ${k === view ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="row">場面 <select id="p">${preset ? '' : '<option selected>（日付を進めた）</option>'}${Object.entries(PRESETS).map(([k, o]) => `<option value="${k}" ${k === preset ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
@@ -304,7 +306,7 @@ const topBar = left => `<div class="top"><span class="date">${left}</span><a hre
 function tabs() {
   const risky = S.mats.some(m => stateOf(m).risk !== null && stateOf(m).risk !== undefined);
   const t = (k, l) => `<a href="#" data-go="${k}" class="${view === k ? 'on' : ''}">${ICON[k]}${l}${k === 'progress' && risky ? '<span class="badge"></span>' : ''}</a>`;
-  return `<nav class="tabs">${t('today', '今日')}${t('remain', '残り')}${t('progress', '進み具合')}</nav>`;
+  return `<nav class="tabs">${t('remain', '残り')}${t('today', '今日')}${t('progress', '進み具合')}</nav>`;
 }
 
 // ---------- 今日 ----------
@@ -363,19 +365,23 @@ function today() {
 // ---------- 残り ----------
 function remain() {
   const t = Math.max(S.today, S.exam.start);
-  const h = sumH(t, S.exam.date);
-  const rs = reviewStart();
-  const studyH = t < rs ? sumH(t, rs) : 0;
-  const reviewH = h - studyH;
-  const usedH = sumH(S.exam.start, t);
-  const tot = usedH + h;
-  const pct = x => `${(x / tot * 100).toFixed(1)}%`;
-  return topBar(S.exam.name) + `<div class="remain">
+  const h = sumH(t, S.exam.date);                 // 残り
+  const total = sumH(S.exam.start, S.exam.date);  // 最初にあった時間
+  const used = total - h;                         // 過ぎた時間
+  const R = 88, C = 2 * Math.PI * R, f = h / total;
+  // 12時の位置から時計回りに「過ぎた時間」が広がり、残りの弧が減っていく
+  return topBar('') + `<div class="remain">
       <div class="label">${S.exam.name}まで、勉強に使える時間</div>
-      <div class="num">${h}<small>時間</small></div>
-      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>
-    <div class="split"><div class="track"><div style="width:${pct(usedH)};background:#c7c7cc"></div><div class="study" style="width:${pct(studyH)}"></div><div class="review" style="width:${pct(reviewH)}"></div></div>
-      <div class="legend"><span><i class="dot" style="background:#2f6fde"></i>新しい範囲 ${studyH}時間</span><span><i class="dot" style="background:#9db8ef"></i>復習 ${reviewH}時間</span></div></div>` + why('spacing');
+      <div class="ring">
+        <svg viewBox="0 0 200 200" width="280" height="280">
+          <circle cx="100" cy="100" r="${R}" fill="none" stroke="#e5e5ea" stroke-width="12"/>
+          <circle cx="100" cy="100" r="${R}" fill="none" stroke="#2f6fde" stroke-width="12" stroke-linecap="${f > 0.01 && f < 0.99 ? 'round' : 'butt'}"
+            stroke-dasharray="${f * C} ${C}" stroke-dashoffset="${-(1 - f) * C}" transform="rotate(-90 100 100)"/>
+        </svg>
+        <div class="center"><div class="a">あと</div><div class="num">${h}<small>時間</small></div><div class="of">${total}時間中</div></div>
+      </div>
+      <div class="usedline">${used === 0 ? `最初にある時間は <b>${total}時間</b> です` : `<b>${used}時間</b>が過ぎました（${Math.round(used / total * 100)}%）`}</div>
+      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>`;
 }
 
 // ---------- 進み具合 ----------
@@ -479,12 +485,12 @@ function setup4() {
       <li>残りの日に、空き時間に合わせて範囲を割り振ります</li></ul>
       <div class="muted">復習期間と予備日は、あとで変えられます。</div></div>
     ${why('fallacy')}
-    <button class="btn next-btn" data-go="today">始める</button></div>`;
+    <button class="btn next-btn" data-go="remain">始める</button></div>`;
 }
 
 // ---------- 設定・進め方・見本 ----------
 function settings() {
-  return `<a class="back" href="#" data-go="today">‹ 戻る</a><div class="title">設定</div>
+  return `<a class="back" href="#" data-go="remain">‹ 戻る</a><div class="title">設定</div>
     <div class="list"><div>試験<span>${S.exam.name}・${md(S.exam.date)}</span></div><div>教材<span>${S.mats.length}冊</span></div>
       <div>曜日ごとの時間・時刻・場所<span>›</span></div><div>例外の日<span>›</span></div></div>
     <div class="list"><div>予備日<span>毎週${WD[S.bufferWd]}曜</span></div><div>復習期間<span>試験前の${reviewLen()}日間</span></div><div>お知らせ<span>オン</span></div></div>
