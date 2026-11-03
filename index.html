@@ -53,6 +53,12 @@
   .ring .a { font-size: 16px; color: #8e8e93; }
   .ring .num { font-size: 72px; margin-top: 0; }
   .ring .of { font-size: 14px; color: #8e8e93; margin-top: 2px; }
+  .todaybox { margin: 28px 16px 0; background: #fff; border-radius: 20px; padding: 18px 20px; text-align: center; }
+  .todaybox:empty { display: none; }
+  .tb-label { font-size: 14px; color: #8e8e93; }
+  .tb-time { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; margin: 2px 0; color: #c7c7cc; }
+  .todaybox.during .tb-time { color: #2f6fde; }
+  .tb-note { font-size: 14px; color: #636366; }
   .usedline { font-size: 16px; color: #3a3a3c; margin-top: 18px; }
   .usedline b { font-weight: 700; }
 
@@ -282,6 +288,28 @@ const ICON = {
   gear: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
 };
 
+// ---------- 時刻（日付は試作の「今日」、時刻は実際の時刻。操作バーでずらせる） ----------
+let clockOffset = 0; // 秒
+const realSec = () => { const d = new Date(); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000; };
+const nowSec = () => ((realSec() + clockOffset) % 86400 + 86400) % 86400;
+const toSec = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 3600 + m * 60; };
+const hhmm = sec => { sec = Math.round(sec) % 86400; return `${Math.floor(sec / 3600)}:${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')}`; };
+const hms = sec => { sec = Math.max(0, Math.floor(sec)); return `${Math.floor(sec / 3600)}:${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
+// 今日の勉強時間の枠と、いまどこにいるか
+function todayWindow() {
+  const t = S.today, w = S.week[wd(t)];
+  const start = toSec(w.t), len = w.h * 3600, now = nowSec();
+  const active = t >= S.exam.start && t < S.exam.date && len > 0;
+  const state = !active ? 'none' : now < start ? 'before' : now < start + len ? 'during' : 'after';
+  const left = state === 'before' ? len : state === 'during' ? start + len - now : 0;
+  return { start, end: start + len, len, now, state, left };
+}
+// 試験までの残り（秒）。今日の分は、勉強時間の枠のうちまだ過ぎていない分だけ数える
+function remainingSec() {
+  if (S.today < S.exam.start) return sumH(S.exam.start, S.exam.date) * 3600;
+  return todayWindow().left + sumH(S.today + 1, S.exam.date) * 3600;
+}
+
 // ---------- 画面の状態 ----------
 const TABS = ['remain', 'today', 'progress'];
 let view = 'remain', preset = 'start', sheet = null;
@@ -292,6 +320,16 @@ if (params.get('sheet')) sheet = { id: params.get('sheet'), v: null };
 const showBar = params.get('bar') !== '0';
 applyPreset(preset);
 
+// 時刻の見本（勉強時間の枠に対して、前・最中・後）。'real' は実際の時刻
+const CLOCKS = [['real', '実際の時刻'], ['before', '勉強時間の30分前'], ['during', '勉強時間の途中'], ['after', '勉強時間のあと']];
+let clockSel = 'real';
+function setClock(k) {
+  clockSel = k;
+  if (k === 'real') { clockOffset = 0; return; }
+  const w = S.week[wd(S.today)], st = toSec(w.t), len = w.h * 3600;
+  const target = k === 'before' ? st - 1800 : k === 'during' ? st + len * 0.4 : st + len + 1800;
+  clockOffset = target - realSec();
+}
 function bar() {
   if (!showBar) return '';
   const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', remain: '残り', today: '今日', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
@@ -299,6 +337,7 @@ function bar() {
     <div class="row">画面 <select id="v">${Object.entries(views).map(([k, l]) => `<option value="${k}" ${k === view ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="row">場面 <select id="p">${preset ? '' : '<option selected>（日付を進めた）</option>'}${Object.entries(PRESETS).map(([k, o]) => `<option value="${k}" ${k === preset ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
       <button id="nextDay">翌日へ</button></div>
+    <div class="row">時刻 <select id="clk">${CLOCKS.map(([k, l]) => `<option value="${k}" ${k === clockSel ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="row note">試作の操作バー（アプリの一部ではない）。今日: ${mdw(S.today)}</div>
   </div>`;
 }
@@ -322,7 +361,7 @@ function today() {
   }
 
   if (ph === 'review') {
-    out += `<div class="title">今日の復習</div><div class="subtitle">${w.t}〜 ${w.p}・復習期間はあと${sts[0][1].daysLeft}日</div>`;
+    out += `<div class="title">今日の復習</div><div class="subtitle">${w.t}〜 ${w.p}<span id="todayleft"></span>・復習期間はあと${sts[0][1].daysLeft}日</div>`;
     for (const [m, s] of sts) if (s.range) out += `<div class="task"><div class="name">${m.name}</div><div class="range">${s.range}</div><button class="btn">終わった</button></div>`;
     return out + `<div class="rest">復習期間は、記録を付けなくてもかまいません。</div>` + why('retrieval');
   }
@@ -336,7 +375,7 @@ function today() {
   }
 
   out += `<div class="title">${buffer ? '今日は予備日' : s0.newWeek ? '新しい週です' : '今日やること'}</div>`;
-  out += `<div class="subtitle">${w.t}〜 ${w.p}${buffer ? '・今週の遅れを取り戻す日' : ''}</div>`;
+  out += `<div class="subtitle">${w.t}〜 ${w.p}<span id="todayleft"></span>${buffer ? '・今週の遅れを取り戻す日' : ''}</div>`;
 
   for (const [m, s] of sts) {
     const u = U[m.unit];
@@ -363,26 +402,52 @@ function today() {
 }
 
 // ---------- 残り ----------
+const RING_R = 88, RING_C = 2 * Math.PI * RING_R;
 function remain() {
-  const t = Math.max(S.today, S.exam.start);
-  const h = sumH(t, S.exam.date);                 // 残り
   const total = sumH(S.exam.start, S.exam.date);  // 最初にあった時間
-  const used = total - h;                         // 過ぎた時間
-  const R = 88, C = 2 * Math.PI * R, f = h / total;
   // 12時の位置から時計回りに「過ぎた時間」が広がり、残りの弧が減っていく
   return topBar('') + `<div class="remain">
       <div class="label">${S.exam.name}まで、勉強に使える時間</div>
       <div class="ring">
         <svg viewBox="0 0 200 200" width="280" height="280">
-          <circle cx="100" cy="100" r="${R}" fill="none" stroke="#e5e5ea" stroke-width="12"/>
-          <circle cx="100" cy="100" r="${R}" fill="none" stroke="#2f6fde" stroke-width="12" stroke-linecap="${f > 0.01 && f < 0.99 ? 'round' : 'butt'}"
-            stroke-dasharray="${f * C} ${C}" stroke-dashoffset="${-(1 - f) * C}" transform="rotate(-90 100 100)"/>
+          <circle cx="100" cy="100" r="${RING_R}" fill="none" stroke="#e5e5ea" stroke-width="12"/>
+          <circle id="arc" cx="100" cy="100" r="${RING_R}" fill="none" stroke="#2f6fde" stroke-width="12" transform="rotate(-90 100 100)"/>
         </svg>
-        <div class="center"><div class="a">あと</div><div class="num">${h}<small>時間</small></div><div class="of">${total}時間中</div></div>
+        <div class="center"><div class="a">あと</div><div class="num"><span id="remH"></span><small>時間</small></div><div class="of">${total}時間中</div></div>
       </div>
-      <div class="usedline">${used === 0 ? `最初にある時間は <b>${total}時間</b> です` : `<b>${used}時間</b>が過ぎました（${Math.round(used / total * 100)}%）`}</div>
-      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>`;
+      <div class="usedline" id="usedline"></div>
+      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>
+    <div class="todaybox" id="todaybox"></div>`;
 }
+// 1秒ごとに数字だけを書き換える（画面全体は描き直さない）
+function tickRemain() {
+  const total = sumH(S.exam.start, S.exam.date);
+  const rem = remainingSec(), f = rem / (total * 3600);
+  const remH = Math.floor(rem / 3600), used = Math.floor((total * 3600 - rem) / 3600);
+  const arc = document.getElementById('arc');
+  if (!arc) return;
+  arc.setAttribute('stroke-dasharray', `${f * RING_C} ${RING_C}`);
+  arc.setAttribute('stroke-dashoffset', `${-(1 - f) * RING_C}`);
+  arc.setAttribute('stroke-linecap', f > 0.01 && f < 0.99 ? 'round' : 'butt');
+  document.getElementById('remH').textContent = remH;
+  document.getElementById('usedline').innerHTML = used <= 0 ? `最初にある時間は <b>${total}時間</b> です` : `<b>${used}時間</b>が過ぎました（${Math.round(used / total * 100)}%）`;
+  const w = todayWindow(), box = document.getElementById('todaybox');
+  if (w.state === 'none') { box.innerHTML = S.today < S.exam.start ? '' : `<div class="tb-label">今日は勉強の時間を取っていません</div>`; return; }
+  const range = `${hhmm(w.start)}〜${hhmm(w.end)}`;
+  box.className = 'todaybox ' + w.state;
+  box.innerHTML = w.state === 'before'
+    ? `<div class="tb-label">今日の勉強時間 ${range}</div><div class="tb-time">${hms(w.len)}</div><div class="tb-note">始まるまで ${hms(w.start - w.now)}</div>`
+    : w.state === 'during'
+    ? `<div class="tb-label">今日の勉強時間 あと</div><div class="tb-time">${hms(w.left)}</div><div class="tb-note">${hhmm(w.end)} まで</div>`
+    : `<div class="tb-label">今日の勉強時間 ${range}</div><div class="tb-time">0:00:00</div><div class="tb-note">今日の時間は終わりました。おつかれさまでした</div>`;
+}
+function tickToday() {
+  const el = document.getElementById('todayleft');
+  if (!el) return;
+  const w = todayWindow();
+  el.textContent = w.state === 'during' ? `・あと ${hms(w.left)}` : '';
+}
+setInterval(() => { tickRemain(); tickToday(); }, 1000);
 
 // ---------- 進み具合 ----------
 function progress() {
@@ -535,6 +600,7 @@ const VIEWS = { today, remain, progress, setup1, setup2, setup3, setup4, setting
 function render(anchor) {
   const body = VIEWS[view]();
   document.getElementById('app').innerHTML = bar() + body + (TABS.includes(view) ? tabs() : '') + sheetHtml();
+  tickRemain(); tickToday();
   if (anchor) { const el = document.getElementById('m-' + anchor); if (el) el.scrollIntoView(); } else if (!sheet) window.scrollTo(0, 0);
 }
 document.addEventListener('input', e => {
@@ -545,7 +611,8 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   if (e.target.id === 'v') { view = e.target.value; render(); }
-  if (e.target.id === 'p' && PRESETS[e.target.value]) { preset = e.target.value; applyPreset(preset); if (!TABS.includes(view)) view = 'today'; render(); }
+  if (e.target.id === 'clk') { setClock(e.target.value); render(); return; }
+  if (e.target.id === 'p' && PRESETS[e.target.value]) { preset = e.target.value; applyPreset(preset); setClock(clockSel); if (!TABS.includes(view)) view = 'remain'; render(); }
 });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-go],[data-done],[data-sheet],[data-step],[data-save],[data-close],#nextDay');
@@ -560,9 +627,10 @@ document.addEventListener('click', e => {
   if (el.id === 'nextDay') {
     const t = S.today;
     if (isBuffer(t)) for (const m of S.mats) S.weekStartPos[m.id] = S.pos[m.id]; // 予備日のあとに配り直す
-    S.today = t + 1; preset = ''; render();
+    S.today = t + 1; preset = ''; setClock(clockSel); render();
   }
 });
+if (params.get('clock')) setClock(params.get('clock'));
 render();
 </script>
 </body>
