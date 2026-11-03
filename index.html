@@ -166,6 +166,10 @@
   .mdr .rg { font-size: 17px; font-weight: 700; }
   .how h3 { font-size: 15px; margin: 4px 0 4px; }
   .how ol { margin: 0 0 12px; padding-left: 1.3em; font-size: 14px; line-height: 1.7; color: #3a3a3c; }
+  .seg { display: inline-flex; background: #eeeef0; border-radius: 9px; padding: 2px; }
+  .seg button { border: none; background: transparent; font-size: 14px; padding: 5px 16px; border-radius: 7px; color: #1c1c1e; }
+  .seg button.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); font-weight: 600; }
+  .list .segnote { display: block; font-size: 13px; color: #8e8e93; padding: 0 16px 12px; border-top: none; }
   .wcard { display: flex; align-items: center; gap: 12px; margin: 14px 16px 0; background: #fff; border-radius: 16px; padding: 12px 14px; color: #1c1c1e; }
   .wcard .wt { flex: 1; font-size: 13px; color: #636366; line-height: 1.5; }
   .wcard .wt b { color: #1c1c1e; font-size: 15px; }
@@ -200,7 +204,7 @@ const S = {
     { id: 'b', name: '午後I 過去問', unit: '問', end: 40, done0: 3 },
     { id: 'c', name: '午後II 論文', unit: '本', end: 8, done0: 0 },
   ],
-  today: 0, pos: {}, weekStartPos: {}, widgetAdded: false, widgetCardClosed: false,
+  today: 0, pos: {}, weekStartPos: {}, widgetAdded: false, widgetCardClosed: false, unit: 'hours',
 };
 const hours = n => S.week[wd(n)].h;
 const sumH = (a, b) => range(a, b).reduce((s, n) => s + hours(n), 0);
@@ -338,12 +342,30 @@ function remainingSec() {
   return todayWindow().left + sumH(S.today + 1, S.exam.date) * 3600;
 }
 
+// 残りを「時間」と「日」のどちらで表すか（設定で選ぶ）。輪・大きな数字・ウィジェットがこれに従う
+function remainModel() {
+  if (S.unit === 'days') {
+    const total = S.exam.date - S.exam.start;
+    const started = S.today >= S.exam.start;
+    const remSec = started ? (S.exam.date - S.today) * 86400 - nowSec() : total * 86400;
+    const n = started ? S.exam.date - S.today : total, used = started ? S.today - S.exam.start : 0;
+    return { total, n, used, f: remSec / (total * 86400), u: '日', short: '日',
+      label: `${S.exam.name}の試験日まで`,
+      sub: `試験日 ${mdw(S.exam.date)}<br>勉強に使える時間は あと${Math.floor(remainingSec() / 3600)}時間` };
+  }
+  const total = sumH(S.exam.start, S.exam.date), rem = remainingSec();
+  return { total, n: Math.floor(rem / 3600), used: Math.floor((total * 3600 - rem) / 3600), f: rem / (total * 3600), u: '時間', short: 'h',
+    label: `${S.exam.name}まで、勉強に使える時間`,
+    sub: `試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日` };
+}
+
 // ---------- 画面の状態 ----------
 const TABS = ['remain', 'today', 'progress', 'settings', 'widgets'];
 let view = 'remain', preset = 'start', sheet = null;
 const params = new URLSearchParams(location.search);
 if (params.get('view')) view = params.get('view');
 if (params.get('preset')) preset = params.get('preset');
+if (params.get('unit')) S.unit = params.get('unit');
 if (params.get('sheet')) sheet = { id: params.get('sheet'), v: null };
 const showBar = params.get('bar') !== '0';
 applyPreset(preset);
@@ -432,35 +454,34 @@ function today() {
 // ---------- 残り ----------
 const RING_R = 88, RING_C = 2 * Math.PI * RING_R;
 function remain() {
-  const total = sumH(S.exam.start, S.exam.date);  // 最初にあった時間
-  // 12時の位置から時計回りに「過ぎた時間」が広がり、残りの弧が減っていく
+  const d = remainModel();
+  // 12時の位置から時計回りに「過ぎた分」が広がり、残りの弧が減っていく
   return topBar('') + `<div class="remain">
-      <div class="label">${S.exam.name}まで、勉強に使える時間</div>
+      <div class="label">${d.label}</div>
       <div class="ring">
         <svg viewBox="0 0 200 200" width="280" height="280">
           <circle cx="100" cy="100" r="${RING_R}" fill="none" stroke="#e5e5ea" stroke-width="12"/>
           <circle id="arc" cx="100" cy="100" r="${RING_R}" fill="none" stroke="#2f6fde" stroke-width="12" transform="rotate(-90 100 100)"/>
         </svg>
-        <div class="center"><div class="a">あと</div><div class="num"><span id="remH"></span><small>時間</small></div><div class="of">${total}時間中</div></div>
+        <div class="center"><div class="a">あと</div><div class="num"><span id="remH"></span><small>${d.u}</small></div><div class="of">${d.total}${d.u}中</div></div>
       </div>
       <div class="usedline" id="usedline"></div>
-      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>
+      <div class="sub" id="remsub"></div></div>
     <div class="todaybox" id="todaybox"></div>
     ${S.widgetAdded || S.widgetCardClosed ? '' : `<a href="#" class="wcard" data-go="widgets">${miniRing(40, 7, 0.75, '#2f6fde', '#e5e5ea', '')}
-      <span class="wt"><b>残り時間をホーム画面に</b><br>ウィジェットを置くと、開かなくても見えます</span><span class="wx" data-closecard="1">×</span></a>`}`;
+      <span class="wt"><b>残り${d.u === '日' ? '日数' : '時間'}をホーム画面に</b><br>ウィジェットを置くと、開かなくても見えます</span><span class="wx" data-closecard="1">×</span></a>`}`;
 }
 // 1秒ごとに数字だけを書き換える（画面全体は描き直さない）
 function tickRemain() {
-  const total = sumH(S.exam.start, S.exam.date);
-  const rem = remainingSec(), f = rem / (total * 3600);
-  const remH = Math.floor(rem / 3600), used = Math.floor((total * 3600 - rem) / 3600);
   const arc = document.getElementById('arc');
   if (!arc) return;
+  const d = remainModel(), f = d.f;
   arc.setAttribute('stroke-dasharray', `${f * RING_C} ${RING_C}`);
   arc.setAttribute('stroke-dashoffset', `${-(1 - f) * RING_C}`);
   arc.setAttribute('stroke-linecap', f > 0.01 && f < 0.99 ? 'round' : 'butt');
-  document.getElementById('remH').textContent = remH;
-  document.getElementById('usedline').innerHTML = used <= 0 ? `最初にある時間は <b>${total}時間</b> です` : `<b>${used}時間</b>が過ぎました（${Math.round(used / total * 100)}%）`;
+  document.getElementById('remH').textContent = d.n;
+  document.getElementById('usedline').innerHTML = d.used <= 0 ? `最初にある${d.u === '日' ? '日数' : '時間'}は <b>${d.total}${d.u}</b> です` : `<b>${d.used}${d.u}</b>が過ぎました（${Math.round(d.used / d.total * 100)}%）`;
+  document.getElementById('remsub').innerHTML = d.sub;
   const w = todayWindow(), box = document.getElementById('todaybox');
   if (w.state === 'none') { box.innerHTML = S.today < S.exam.start ? '' : `<div class="tb-label">今日は勉強の時間を取っていません</div>`; return; }
   const range = `${hhmm(w.start)}〜${hhmm(w.end)}`;
@@ -591,6 +612,8 @@ function setup4() {
 function settings() {
   return `${topBar('')}<div class="title">設定</div>
     <div class="list"><a href="#" data-go="widgets">ウィジェット<span>${S.widgetAdded ? '置いてあります' : 'まだ置いていません'} ›</span></a></div>
+    <div class="list"><div>残りの表し方<span class="seg"><button data-unit="hours" class="${S.unit === 'hours' ? 'on' : ''}">時間</button><button data-unit="days" class="${S.unit === 'days' ? 'on' : ''}">日</button></span></div>
+      <div class="segnote">${S.unit === 'hours' ? '勉強に使える時間で数えます（睡眠や仕事などを除いた時間）' : '試験日までの日数で数えます'}</div></div>
     <div class="list"><div>試験<span>${S.exam.name}・${md(S.exam.date)}</span></div><div>教材<span>${S.mats.length}冊</span></div>
       <div>曜日ごとの時間・時刻・場所<span>›</span></div><div>例外の日<span>›</span></div></div>
     <div class="list"><div>予備日<span>毎週${WD[S.bufferWd]}曜</span></div><div>復習期間<span>試験前の${reviewLen()}日間</span></div><div>お知らせ<span>オン</span></div></div>
@@ -624,25 +647,25 @@ function miniRing(size, sw, f, color, track, inner) {
     <div class="mc">${inner}</div></div>`;
 }
 function widgetData() {
-  const total = sumH(S.exam.start, S.exam.date), rem = remainingSec();
-  const s = stateOf(S.mats[0]), w = todayWindow();
+  const m = remainModel(), s = stateOf(S.mats[0]), w = todayWindow();
   const cd = w.state === 'during' ? `あと <span class="live" data-live="1">${hms(w.left)}</span>` : w.state === 'before' ? `${hhmm(w.start)} から ${hms(w.len)}` : w.state === 'after' ? '今日の時間は終わり' : '今日はお休み';
-  return { total, h: Math.floor(rem / 3600), f: rem / (total * 3600), r: s.range || '—', cd };
+  return { ...m, r: s.range || '—', cd };
 }
 function widgetPreviews() {
   const d = widgetData(), w = S.week[wd(S.today)];
+  const ring = size => miniRing(size, 11, d.f, '#2f6fde', '#e5e5ea', `<span class="a">あと</span><b>${d.n}</b><span class="a">${d.u}</span>`);
   return `<div class="wsec">ロック画面</div>
     <div class="wall lock"><div class="wdate">${mdw(S.today)}</div>
-      <div class="inline">${d.h}h・今日 ${d.r}</div>
+      <div class="inline">あと${d.n}${d.u}・今日 ${d.r}</div>
       <div class="clock">${w.t}</div>
       <div class="lockrow">
-        ${miniRing(64, 9, d.f, '#fff', 'rgba(255,255,255,0.3)', `<b>${d.h}</b><i>h</i>`)}
-        <div class="lrect"><div class="e">${S.exam.name}まで</div><div class="big">あと ${d.h}時間</div><div>今日 ${d.r}</div></div>
+        ${miniRing(64, 9, d.f, '#fff', 'rgba(255,255,255,0.3)', `<b>${d.n}</b><i>${d.short}</i>`)}
+        <div class="lrect"><div class="e">${S.exam.name}まで</div><div class="big">あと ${d.n}${d.u}</div><div>今日 ${d.r}</div></div>
       </div></div>
     <div class="wsec">ホーム画面</div>
     <div class="wall home"><div class="homerow">
-      <div class="widget sm">${miniRing(112, 11, d.f, '#2f6fde', '#e5e5ea', `<span class="a">あと</span><b>${d.h}</b><span class="a">時間</span>`)}</div>
-      <div class="widget md">${miniRing(112, 11, d.f, '#2f6fde', '#e5e5ea', `<span class="a">あと</span><b>${d.h}</b><span class="a">時間</span>`)}
+      <div class="widget sm">${ring(112)}</div>
+      <div class="widget md">${ring(112)}
         <div class="mdr"><div class="e">${S.exam.name}まで</div><div class="lbl">今日の勉強時間</div><div class="cd">${d.cd}</div><div class="lbl">今日やること</div><div class="rg">${d.r}</div></div></div>
     </div></div>`;
 }
@@ -686,6 +709,8 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-go],[data-done],[data-sheet],[data-step],[data-save],[data-close],#nextDay');
   if (!el) return;
   e.preventDefault();
+  const ub = e.target.closest('[data-unit]');
+  if (ub) { e.preventDefault(); S.unit = ub.dataset.unit; render(); return; }
   if (e.target.closest('[data-closecard]')) { S.widgetCardClosed = true; render(); return; }
   if (el.dataset.go) { if (el.dataset.go === 'methods' && view !== 'methods') backTo = view; view = el.dataset.go; render(el.dataset.anchor); return; }
   if (el.dataset.done) { S.pos[el.dataset.done] = Math.max(S.pos[el.dataset.done], Number(el.dataset.end)); render(); return; }
