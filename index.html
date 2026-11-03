@@ -141,6 +141,35 @@
   .widget .n small { font-size: 14px; }
   .widget .r { font-size: 14px; font-weight: 600; color: #2f6fde; }
   .cap { font-size: 13px; color: #636366; margin: 14px 20px 0; }
+  .wsec { font-size: 13px; font-weight: 600; color: #8e8e93; margin: 22px 20px 0; }
+  .wall.lock .clock { font-size: 72px; font-weight: 600; margin: 2px 0 14px; }
+  .wall.lock .inline { margin-bottom: 0; font-size: 14px; }
+  .lockrow { display: flex; gap: 10px; align-items: center; justify-content: center; }
+  .lrect { background: rgba(255,255,255,0.18); border-radius: 14px; padding: 8px 12px; font-size: 13px; line-height: 1.4; min-width: 150px; }
+  .lrect .e { font-size: 11px; opacity: 0.85; }
+  .lrect .big { font-size: 17px; font-weight: 700; }
+  .mring { position: relative; flex: none; }
+  .mring svg { display: block; }
+  .mring .mc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; }
+  .mring .mc b { font-size: 22px; font-weight: 700; }
+  .mring .mc i { font-style: normal; font-size: 11px; }
+  .lockrow .mc b { font-size: 17px; }
+  .lockrow .mc i { font-size: 10px; }
+  .widget.sm .mc b, .widget.md .mc b { font-size: 32px; }
+  .mring .mc .a { font-size: 11px; color: #8e8e93; }
+  .homerow { display: flex; flex-direction: column; gap: 14px; }
+  .widget.sm { width: 150px; height: 150px; align-items: center; justify-content: center; }
+  .widget.md { width: 100%; height: 150px; flex-direction: row; align-items: center; gap: 14px; }
+  .mdr { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .mdr .lbl { font-size: 11px; color: #8e8e93; margin-top: 4px; }
+  .mdr .cd { font-size: 17px; font-weight: 700; color: #2f6fde; font-variant-numeric: tabular-nums; }
+  .mdr .rg { font-size: 17px; font-weight: 700; }
+  .how h3 { font-size: 15px; margin: 4px 0 4px; }
+  .how ol { margin: 0 0 12px; padding-left: 1.3em; font-size: 14px; line-height: 1.7; color: #3a3a3c; }
+  .wcard { display: flex; align-items: center; gap: 12px; margin: 14px 16px 0; background: #fff; border-radius: 16px; padding: 12px 14px; color: #1c1c1e; }
+  .wcard .wt { flex: 1; font-size: 13px; color: #636366; line-height: 1.5; }
+  .wcard .wt b { color: #1c1c1e; font-size: 15px; }
+  .wcard .wx { color: #c7c7cc; font-size: 20px; padding: 0 4px; }
 </style>
 </head>
 <body>
@@ -171,7 +200,7 @@ const S = {
     { id: 'b', name: '午後I 過去問', unit: '問', end: 40, done0: 3 },
     { id: 'c', name: '午後II 論文', unit: '本', end: 8, done0: 0 },
   ],
-  today: 0, pos: {}, weekStartPos: {},
+  today: 0, pos: {}, weekStartPos: {}, widgetAdded: false, widgetCardClosed: false,
 };
 const hours = n => S.week[wd(n)].h;
 const sumH = (a, b) => range(a, b).reduce((s, n) => s + hours(n), 0);
@@ -310,7 +339,7 @@ function remainingSec() {
 }
 
 // ---------- 画面の状態 ----------
-const TABS = ['remain', 'today', 'progress', 'settings'];
+const TABS = ['remain', 'today', 'progress', 'settings', 'widgets'];
 let view = 'remain', preset = 'start', sheet = null;
 const params = new URLSearchParams(location.search);
 if (params.get('view')) view = params.get('view');
@@ -331,7 +360,7 @@ function setClock(k) {
 }
 function bar() {
   if (!showBar) return '';
-  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', remain: '残り', today: '今日', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
+  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', setup5: '設定⑤', remain: '残り', today: '今日', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
   return `<div class="bar">
     <div class="row">画面 <select id="v">${Object.entries(views).map(([k, l]) => `<option value="${k}" ${k === view ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <div class="row">場面 <select id="p">${preset ? '' : '<option selected>（日付を進めた）</option>'}${Object.entries(PRESETS).map(([k, o]) => `<option value="${k}" ${k === preset ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
@@ -416,7 +445,9 @@ function remain() {
       </div>
       <div class="usedline" id="usedline"></div>
       <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>
-    <div class="todaybox" id="todaybox"></div>`;
+    <div class="todaybox" id="todaybox"></div>
+    ${S.widgetAdded || S.widgetCardClosed ? '' : `<a href="#" class="wcard" data-go="widgets">${miniRing(40, 7, 0.75, '#2f6fde', '#e5e5ea', '')}
+      <span class="wt"><b>残り時間をホーム画面に</b><br>ウィジェットを置くと、開かなくても見えます</span><span class="wx" data-closecard="1">×</span></a>`}`;
 }
 // 1秒ごとに数字だけを書き換える（画面全体は描き直さない）
 function tickRemain() {
@@ -446,7 +477,11 @@ function tickToday() {
   const w = todayWindow();
   el.textContent = w.state === 'during' ? `・あと ${hms(w.left)}` : '';
 }
-setInterval(() => { tickRemain(); tickToday(); }, 1000);
+function tickLive() {
+  const w = todayWindow();
+  document.querySelectorAll('[data-live]').forEach(el => { el.textContent = hms(w.left); });
+}
+setInterval(() => { tickRemain(); tickToday(); tickLive(); }, 1000);
 
 // ---------- 進み具合 ----------
 function progress() {
@@ -506,7 +541,7 @@ function sheetHtml() {
 }
 
 // ---------- 最初の設定 ----------
-function steps(k) { return `<div class="steps">${[1, 2, 3, 4].map(i => `<span class="${i <= k ? 'on' : ''}"></span>`).join('')}</div>`; }
+function steps(k) { return `<div class="steps">${[1, 2, 3, 4, 5].map(i => `<span class="${i <= k ? 'on' : ''}"></span>`).join('')}</div>`; }
 function setup1() {
   return `<div class="setup">${steps(1)}<h1>どの試験を受けますか</h1>
     <p class="lead">試験日までの、勉強に使える時間を数えます。</p>
@@ -549,16 +584,17 @@ function setup4() {
       <li>残りの日に、空き時間に合わせて範囲を割り振ります</li></ul>
       <div class="muted">復習期間と予備日は、あとで変えられます。</div></div>
     ${why('fallacy')}
-    <button class="btn next-btn" data-go="remain">始める</button></div>`;
+    <button class="btn next-btn" data-go="setup5">次へ</button></div>`;
 }
 
 // ---------- 設定・進め方・見本 ----------
 function settings() {
   return `${topBar('')}<div class="title">設定</div>
+    <div class="list"><a href="#" data-go="widgets">ウィジェット<span>${S.widgetAdded ? '置いてあります' : 'まだ置いていません'} ›</span></a></div>
     <div class="list"><div>試験<span>${S.exam.name}・${md(S.exam.date)}</span></div><div>教材<span>${S.mats.length}冊</span></div>
       <div>曜日ごとの時間・時刻・場所<span>›</span></div><div>例外の日<span>›</span></div></div>
     <div class="list"><div>予備日<span>毎週${WD[S.bufferWd]}曜</span></div><div>復習期間<span>試験前の${reviewLen()}日間</span></div><div>お知らせ<span>オン</span></div></div>
-    <div class="list"><a href="#" data-go="methods">このアプリの進め方<span>›</span></a><a href="#" data-go="widgets">ウィジェット・通知（見本）<span>›</span></a></div>`;
+    <div class="list"><a href="#" data-go="methods">このアプリの進め方<span>›</span></a></div>`;
 }
 const METHODS = [
   { id: 'proximal', t: '大きな目標を、今日の小さな範囲に分ける', what: '試験までの範囲を、1日ごとの「今日やる範囲」に分けます。', why: '遠い大きな目標だけを持つより、近くて小さな目標に分けたほうが、自信がつき、成績も上がりました。', app: '「今日」の画面', src: 'Bandura & Schunk (1981)' },
@@ -579,23 +615,56 @@ function methods() {
       <dt>このアプリでは</dt><dd>${m.app}</dd><dt>出典</dt><dd>${m.src}</dd></dl></div>`).join('')}
     <p class="cap">※試作のため、出典はまだ原典で確かめていません。</p>`;
 }
+// 小さな輪（ウィジェット用）
+function miniRing(size, sw, f, color, track, inner) {
+  const r = 50 - sw / 2, c = 2 * Math.PI * r;
+  return `<div class="mring" style="width:${size}px;height:${size}px"><svg viewBox="0 0 100 100" width="${size}" height="${size}">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${track}" stroke-width="${sw}"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${f * c} ${c}" stroke-dashoffset="${-(1 - f) * c}" transform="rotate(-90 50 50)"/></svg>
+    <div class="mc">${inner}</div></div>`;
+}
+function widgetData() {
+  const total = sumH(S.exam.start, S.exam.date), rem = remainingSec();
+  const s = stateOf(S.mats[0]), w = todayWindow();
+  const cd = w.state === 'during' ? `あと <span class="live" data-live="1">${hms(w.left)}</span>` : w.state === 'before' ? `${hhmm(w.start)} から ${hms(w.len)}` : w.state === 'after' ? '今日の時間は終わり' : '今日はお休み';
+  return { total, h: Math.floor(rem / 3600), f: rem / (total * 3600), r: s.range || '—', cd };
+}
+function widgetPreviews() {
+  const d = widgetData(), w = S.week[wd(S.today)];
+  return `<div class="wsec">ロック画面</div>
+    <div class="wall lock"><div class="wdate">${mdw(S.today)}</div>
+      <div class="inline">${d.h}h・今日 ${d.r}</div>
+      <div class="clock">${w.t}</div>
+      <div class="lockrow">
+        ${miniRing(64, 9, d.f, '#fff', 'rgba(255,255,255,0.3)', `<b>${d.h}</b><i>h</i>`)}
+        <div class="lrect"><div class="e">${S.exam.name}まで</div><div class="big">あと ${d.h}時間</div><div>今日 ${d.r}</div></div>
+      </div></div>
+    <div class="wsec">ホーム画面</div>
+    <div class="wall home"><div class="homerow">
+      <div class="widget sm">${miniRing(112, 11, d.f, '#2f6fde', '#e5e5ea', `<span class="a">あと</span><b>${d.h}</b><span class="a">時間</span>`)}</div>
+      <div class="widget md">${miniRing(112, 11, d.f, '#2f6fde', '#e5e5ea', `<span class="a">あと</span><b>${d.h}</b><span class="a">時間</span>`)}
+        <div class="mdr"><div class="e">${S.exam.name}まで</div><div class="lbl">今日の勉強時間</div><div class="cd">${d.cd}</div><div class="lbl">今日やること</div><div class="rg">${d.r}</div></div></div>
+    </div></div>`;
+}
+function howto() {
+  return `<div class="card how"><h3>ホーム画面に置く</h3><ol><li>ホーム画面の何もないところを長押し</li><li>左上の「編集」→「ウィジェットを追加」</li><li>「試験カウントダウン」を選んで、大きさを選ぶ</li></ol>
+    <h3>ロック画面に置く</h3><ol><li>ロック画面を長押しして「カスタマイズ」→「ロック画面」</li><li>時計の下の枠を押す</li><li>「試験カウントダウン」を選ぶ</li></ol></div>`;
+}
 function widgets() {
-  const m = S.mats[0], s = stateOf(m), w = S.week[wd(S.today)];
-  const h = sumH(Math.max(S.today, S.exam.start), S.exam.date);
-  const r = s.range || '—';
-  return `<a class="back" href="#" data-go="settings">‹ 戻る</a>
-    <p class="cap">ロック画面（ウィジェットと通知）</p>
-    <div class="wall"><div class="wdate">${mdw(S.today)}</div><div class="clock">${w.t}</div>
-      <div class="inline">${h}h・${r}</div>
-      <div class="notif"><span class="t">今</span><b>試験カウントダウン</b><br>${w.t} です。${w.p}で${m.name} ${r.split('〜')[0]}〜</div>
-      <div class="notif"><span class="t">遅れている日</span><b>試験カウントダウン</b><br>まず1ページだけ開いてみましょう。${m.name} ${U[m.unit].at(S.pos[m.id] + 1)}から</div></div>
-    <p class="cap">ホーム画面のウィジェット（小）。押すと「残り」が開く</p>
-    <div class="wall"><div class="widget"><div class="e">${S.exam.name}まで</div>
-      <div class="n">${h}<small>時間</small></div><div class="r">今日 ${r}</div></div></div>`;
+  return `${topBar('')}<div class="title">ウィジェット</div>
+    <div class="subtitle" style="line-height:1.5">残り時間と今日やることを、ホーム画面とロック画面にいつも出しておけます。アプリを開かなくても目に入ります。</div>
+    ${widgetPreviews()}${howto()}`;
+}
+function setup5() {
+  return `<div class="setup">${steps(5)}<h1>残り時間を、いつも目に入る場所に</h1>
+    <p class="lead">ホーム画面とロック画面にウィジェットを置くと、アプリを開かなくても残り時間と今日やることが見えます。</p>
+    ${widgetPreviews()}${howto()}
+    <button class="btn next-btn" data-go="remain">始める</button>
+    <button class="btn ghost" style="display:block;margin:4px auto 0;width:auto" data-go="remain">あとで置く</button></div>`;
 }
 
 // ---------- 描画と操作 ----------
-const VIEWS = { today, remain, progress, setup1, setup2, setup3, setup4, settings, methods, widgets };
+const VIEWS = { today, remain, progress, setup1, setup2, setup3, setup4, setup5, settings, methods, widgets };
 function render(anchor) {
   const body = VIEWS[view]();
   document.getElementById('app').innerHTML = bar() + body + (TABS.includes(view) ? tabs() : '') + sheetHtml();
@@ -617,6 +686,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-go],[data-done],[data-sheet],[data-step],[data-save],[data-close],#nextDay');
   if (!el) return;
   e.preventDefault();
+  if (e.target.closest('[data-closecard]')) { S.widgetCardClosed = true; render(); return; }
   if (el.dataset.go) { if (el.dataset.go === 'methods' && view !== 'methods') backTo = view; view = el.dataset.go; render(el.dataset.anchor); return; }
   if (el.dataset.done) { S.pos[el.dataset.done] = Math.max(S.pos[el.dataset.done], Number(el.dataset.end)); render(); return; }
   if (el.dataset.sheet) { sheet = { id: el.dataset.sheet, v: null }; render(); return; }
