@@ -2,12 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>試験カウントダウン 試作</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #e5e5ea; font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; color: #1c1c1e; -webkit-text-size-adjust: 100%; }
-  .phone { max-width: 390px; min-height: 100vh; margin: 0 auto; background: #f2f2f7; padding-bottom: 32px; }
+  .phone { max-width: 390px; min-height: 100vh; margin: 0 auto; background: #f7f7f9; padding-bottom: 110px; position: relative; }
+  a { color: #2f6fde; text-decoration: none; }
+  button { font-family: inherit; }
 
   /* 試作の操作バー（アプリの一部ではない） */
   .bar { background: #3a3a3c; color: #fff; padding: 8px 12px; font-size: 12px; }
@@ -15,39 +17,76 @@
   .bar select, .bar button { font-size: 12px; padding: 4px 6px; border-radius: 6px; border: none; }
   .bar .note { color: #aeaeb2; }
 
-  header { padding: 18px 20px 6px; }
-  header .exam { font-size: 15px; color: #636366; }
-  header h1 { margin: 2px 0 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
-  header h1 small { font-size: 17px; font-weight: 600; margin-left: 2px; }
-  header .sub { font-size: 15px; color: #636366; margin-top: 2px; }
+  /* 画面の頭 */
+  .top { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 0; min-height: 44px; }
+  .top .date { font-size: 15px; color: #8e8e93; }
+  .gear { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #8e8e93; }
+  .title { font-size: 30px; font-weight: 700; margin: 4px 20px 0; letter-spacing: -0.3px; }
+  .subtitle { font-size: 16px; color: #8e8e93; margin: 4px 20px 0; }
 
-  .card { background: #fff; border-radius: 14px; margin: 12px 16px; padding: 14px 16px; }
-  .card h2 { font-size: 13px; font-weight: 600; color: #636366; margin: 0 0 8px; }
-  .when { font-size: 13px; color: #636366; margin-bottom: 6px; }
-  .item { padding: 10px 0; border-top: 1px solid #e5e5ea; }
-  .item:first-of-type { border-top: none; }
-  .item .name { font-size: 13px; color: #636366; }
-  .item .range { font-size: 24px; font-weight: 700; margin: 2px 0 8px; }
-  .item .done { font-size: 17px; color: #34c759; font-weight: 600; margin: 4px 0; }
-  .item .next { font-size: 14px; color: #8e8e93; }
-  .btns { display: flex; gap: 8px; }
-  .btn { flex: 1; font-size: 16px; padding: 10px; border-radius: 10px; border: none; background: #e9effc; color: #2f6fde; font-weight: 600; }
-  .btn.primary { background: #2f6fde; color: #fff; }
-  .status { font-size: 15px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .status .warn { color: #d9480f; font-weight: 600; }
-  .status .ok { color: #2b8a3e; font-weight: 600; }
-  .status .prog { color: #3a3a3c; }
-  .progs { flex-direction: column; gap: 4px; }
-  .banner { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-  .risk { background: #fff4e6; }
-  .risk p { margin: 0 0 10px; font-size: 15px; }
+  /* 今日 */
+  .task { background: #fff; border-radius: 20px; margin: 16px 16px 0; padding: 20px; }
+  .task .name { font-size: 14px; color: #8e8e93; }
+  .task .range { font-size: 40px; font-weight: 700; letter-spacing: -0.5px; margin: 4px 0 18px; }
+  .task .doneline { font-size: 20px; font-weight: 600; color: #34c759; margin: 6px 0 4px; }
+  .task .ahead { font-size: 14px; color: #8e8e93; }
+  .btn { width: 100%; font-size: 17px; padding: 14px; border-radius: 14px; border: none; background: #2f6fde; color: #fff; font-weight: 600; }
+  .btn.ghost { background: transparent; color: #2f6fde; padding: 12px 0 0; font-weight: 500; font-size: 15px; }
+  .rest { margin: 18px 20px 0; font-size: 14px; color: #aeaeb2; line-height: 1.6; }
+  .calm { text-align: center; padding: 48px 20px 8px; }
+  .calm .big { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .calm .small { font-size: 15px; color: #8e8e93; line-height: 1.6; }
 
-  .tip { margin: 12px 16px; padding: 12px 14px; border-radius: 14px; background: #eef4ff; font-size: 14px; line-height: 1.6; color: #24324d; }
-  .tip .label { font-size: 11px; font-weight: 700; color: #2f6fde; letter-spacing: 0.5px; display: block; margin-bottom: 2px; }
-  .tip a { color: #2f6fde; font-weight: 600; text-decoration: none; white-space: nowrap; }
+  /* 根拠の一言 */
+  .why { margin: 22px 20px 0; font-size: 13px; color: #8e8e93; line-height: 1.6; }
+  .why a { font-weight: 600; white-space: nowrap; }
 
-  .links { text-align: center; font-size: 14px; margin-top: 18px; }
-  .links a { color: #2f6fde; text-decoration: none; margin: 0 10px; }
+  /* 残り */
+  .remain { text-align: center; padding: 56px 20px 0; }
+  .remain .label { font-size: 16px; color: #8e8e93; }
+  .remain .num { font-size: 88px; font-weight: 700; letter-spacing: -2px; line-height: 1.05; margin-top: 6px; }
+  .remain .num small { font-size: 24px; font-weight: 600; letter-spacing: 0; margin-left: 4px; }
+  .remain .sub { font-size: 16px; color: #8e8e93; margin-top: 6px; }
+  .split { margin: 44px 24px 0; }
+  .split .track { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #e5e5ea; }
+  .split .study { background: #2f6fde; }
+  .split .review { background: #9db8ef; }
+  .split .legend { display: flex; justify-content: space-between; font-size: 13px; color: #8e8e93; margin-top: 8px; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 5px; vertical-align: 1px; }
+
+  /* 進み具合 */
+  .week { margin: 18px 20px 0; font-size: 18px; font-weight: 600; }
+  .week.ok { color: #2b8a3e; } .week.late { color: #d9480f; }
+  .week .note { display: block; font-size: 14px; font-weight: 400; color: #8e8e93; margin-top: 2px; }
+  .mat { background: #fff; border-radius: 16px; margin: 12px 16px 0; padding: 16px 18px; }
+  .mat .row1 { display: flex; justify-content: space-between; font-size: 15px; }
+  .mat .row1 b { font-weight: 600; }
+  .mat .row1 span { color: #636366; }
+  .mat .bar2 { height: 6px; border-radius: 3px; background: #e5e5ea; margin-top: 10px; overflow: hidden; }
+  .mat .bar2 i { display: block; height: 100%; background: #2f6fde; border-radius: 3px; }
+  .riskbox { background: #fff4e6; border-radius: 16px; margin: 16px 16px 0; padding: 16px 18px; }
+  .riskbox .h { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .riskbox p { margin: 0 0 12px; font-size: 14px; line-height: 1.6; color: #3a3a3c; }
+
+  /* タブバー */
+  .tabs { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 390px; display: flex; background: rgba(247,247,249,0.94); backdrop-filter: blur(12px); border-top: 1px solid #e5e5ea; padding: 6px 0 calc(8px + env(safe-area-inset-bottom)); }
+  .tabs a { flex: 1; text-align: center; font-size: 11px; color: #8e8e93; position: relative; }
+  .tabs a.on { color: #2f6fde; }
+  .tabs svg { display: block; margin: 0 auto 2px; }
+  .tabs .badge { position: absolute; top: 0; left: calc(50% + 8px); width: 8px; height: 8px; border-radius: 4px; background: #ff3b30; }
+
+  /* 記録のシート */
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet { width: 100%; max-width: 390px; background: #fff; border-radius: 20px 20px 0 0; padding: 22px 20px calc(24px + env(safe-area-inset-bottom)); }
+  .sheet .h { font-size: 17px; font-weight: 600; text-align: center; }
+  .sheet .s { font-size: 14px; color: #8e8e93; text-align: center; margin-top: 4px; }
+  .stepper { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 22px 0; }
+  .stepper button { width: 52px; height: 52px; border-radius: 26px; border: none; background: #eef2fb; color: #2f6fde; font-size: 26px; }
+  .stepper .v { font-size: 40px; font-weight: 700; min-width: 150px; text-align: center; display: flex; justify-content: center; align-items: baseline; }
+  .stepper input { font: inherit; width: 2.6em; border: none; border-bottom: 2px solid #d1d1d6; text-align: center; padding: 0; background: transparent; color: inherit; -moz-appearance: textfield; }
+  .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .sheet .hint { font-size: 14px; text-align: center; min-height: 20px; margin-bottom: 14px; }
+  .sheet .hint.ahead { color: #2b8a3e; } .sheet .hint.late { color: #8e8e93; }
 
   /* 最初の設定 */
   .steps { display: flex; gap: 6px; padding: 16px 20px 0; }
@@ -55,33 +94,36 @@
   .steps span.on { background: #2f6fde; }
   .setup h1 { font-size: 26px; margin: 14px 20px 4px; }
   .setup .lead { font-size: 15px; color: #636366; margin: 0 20px 6px; line-height: 1.5; }
+  .card { background: #fff; border-radius: 14px; margin: 12px 16px; padding: 14px 16px; }
   .field { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid #e5e5ea; font-size: 16px; gap: 10px; }
   .field:first-child { border-top: none; }
   .field .v { color: #2f6fde; text-align: right; }
-  .field .hint { color: #8e8e93; font-size: 13px; }
-  .linkish { color: #2f6fde; font-size: 15px; padding: 4px 0 0; }
+  .hint2 { color: #8e8e93; font-size: 13px; line-height: 1.5; }
+  .linkish { color: #2f6fde; font-size: 15px; padding: 6px 0 0; }
   .wk { display: grid; grid-template-columns: 3.2em 1fr 1fr 1fr; gap: 6px; font-size: 15px; align-items: center; }
   .wk .h { font-size: 12px; color: #8e8e93; }
   .wk .c { background: #f2f2f7; border-radius: 8px; padding: 7px 8px; text-align: center; color: #2f6fde; }
   .next-btn { display: block; margin: 20px 16px 0; width: calc(100% - 32px); }
-  .big { font-size: 15px; color: #636366; }
-  .big b { font-size: 30px; color: #1c1c1e; }
+  .bignum { font-size: 15px; color: #636366; }
+  .bignum b { font-size: 30px; color: #1c1c1e; }
   .confirm li { margin: 8px 0; font-size: 15px; line-height: 1.5; }
   .confirm ul { padding-left: 1.2em; margin: 6px 0; }
   .muted { color: #8e8e93; font-size: 13px; }
 
-  /* 進め方のページ */
+  /* 設定・進め方・見本 */
+  .back { font-size: 16px; padding: 14px 16px 0; display: block; }
+  .list { background: #fff; border-radius: 14px; margin: 16px 16px 0; }
+  .list a, .list div { display: flex; justify-content: space-between; padding: 14px 16px; border-top: 1px solid #e5e5ea; font-size: 16px; color: #1c1c1e; }
+  .list > :first-child { border-top: none; }
+  .list span { color: #8e8e93; }
   .method { scroll-margin-top: 10px; }
   .method h3 { font-size: 17px; margin: 0 0 6px; }
   .method dl { margin: 0; font-size: 14px; line-height: 1.6; }
   .method dt { color: #8e8e93; font-size: 12px; margin-top: 6px; }
   .method dd { margin: 0; }
-  .back { color: #2f6fde; font-size: 16px; padding: 14px 16px 0; display: block; text-decoration: none; }
-
-  /* ウィジェット・通知の見本 */
   .wall { margin: 12px 16px; border-radius: 22px; padding: 18px; background: linear-gradient(160deg, #5b7fbf, #8a6bb8); color: #fff; }
   .wall .clock { text-align: center; font-size: 64px; font-weight: 300; line-height: 1; }
-  .wall .date { text-align: center; font-size: 16px; opacity: 0.9; margin-bottom: 4px; }
+  .wall .wdate { text-align: center; font-size: 16px; opacity: 0.9; margin-bottom: 4px; }
   .wall .inline { text-align: center; font-size: 15px; font-weight: 600; margin-bottom: 14px; }
   .notif { background: rgba(255,255,255,0.85); color: #1c1c1e; border-radius: 16px; padding: 10px 12px; font-size: 14px; margin-top: 8px; line-height: 1.45; }
   .notif b { font-size: 13px; }
@@ -156,9 +198,9 @@ const defaultWeekStart = (m, n) => { const s = segStart(n); return s === S.exam.
 
 // ---------- 表示用の言い方 ----------
 const U = {
-  'ページ': { r: (a, b) => a === b ? `p.${a}` : `p.${a}〜${b}`, thru: p => `p.${p}まで終わった`, left: k => `あと${k}ページ`, n: k => `${k}ページ` },
-  '問': { r: (a, b) => a === b ? `問${a}` : `問${a}〜問${b}`, thru: p => `問${p}まで終わった`, left: k => `あと${k}問`, n: k => `${k}問` },
-  '本': { r: (a, b) => a === b ? `${a}本目` : `${a}〜${b}本目`, thru: p => `${p}本書いた`, left: k => `あと${k}本`, n: k => `${k}本` },
+  'ページ': { r: (a, b) => a === b ? `p.${a}` : `p.${a}〜${b}`, at: p => `p.${p}`, thru: p => `p.${p}まで`, left: k => `あと${k}ページ`, n: k => `${k}ページ` },
+  '問': { r: (a, b) => a === b ? `問${a}` : `問${a}〜問${b}`, at: p => `問${p}`, thru: p => `問${p}まで`, left: k => `あと${k}問`, n: k => `${k}問` },
+  '本': { r: (a, b) => a === b ? `${a}本目` : `${a}〜${b}本目`, at: p => p === '' ? '' : `${p}本`, after: '本', thru: p => `${p}本`, left: k => `あと${k}本`, n: k => `${k}本` },
 };
 
 // ---------- その日の状態を出す ----------
@@ -170,40 +212,36 @@ function stateOf(m) {
     const cum = alloc(days, m.end);
     const i = days.indexOf(t);
     const a = (i ? cum[i - 1] : 0) + 1, b = cum[i];
-    return { phase: 'review', range: b >= a ? u.r(a, b) : null, left: pos < m.end ? [pos + 1, m.end] : null, daysLeft: S.exam.date - t };
+    return { phase: 'review', range: b >= a ? u.r(a, b) : null, daysLeft: S.exam.date - t };
   }
   const s = segStart(t);
   const ws = S.weekStartPos[m.id] ?? defaultWeekStart(m, t);
   const p0 = P0(m);
   const Pw = ws === (s === S.exam.start ? m.done0 : p0(s - 1)) ? p0 : plan(m, s, ws);
-  const y = t > s ? Pw(t - 1) : ws;
-  const th = Pw(t);
+  const y = t > s ? Pw(t - 1) : ws;   // 昨日までの予定
+  const th = Pw(t);                    // 今日までの予定
   const behind = Math.max(0, y - pos);
-  const firstHalf = (t - S.exam.start) / (reviewStart() - S.exam.start) < 0.5;
-  const prog = pos === 0 ? 'これから' : firstHalf ? `${u.thru(pos)}（${Math.round(pos / m.end * 100)}%）` : u.left(m.end - pos);
+  const ahead = Math.max(0, pos - th);
   let next = null;
   for (let d = t + 1; d < reviewStart(); d++) { if (Pw(d) > Pw(d - 1)) { next = d; break; } }
-  // ペースの見込み（記録が1週間分たまってから）
+  // ペースの見込み（記録が1週間分たまってから。予定に対して何割進んでいるかで見る）
   let risk = null;
   if (t - S.exam.start >= 7) {
     const planned = p0(t - 1) - m.done0;
     const ratio = planned > 0 ? (pos - m.done0) / planned : 1;
     if (ratio < 0.8) risk = Math.floor(m.done0 + ratio * (m.end - m.done0));
   }
-  if (isBuffer(t)) {
-    return { phase: 'buffer', catchup: pos < th ? u.r(pos + 1, th) : null, catchEnd: th, prog, risk };
-  }
+  const base = { behind, ahead, risk, next, rangeEnd: th, redistributed: S.weekStartPos[m.id] !== undefined };
+  if (isBuffer(t)) return { ...base, phase: 'buffer', range: pos < th ? u.r(pos + 1, th) : null };
   const from = Math.max(pos, y);
-  return {
-    phase: 'study', range: th > from ? u.r(from + 1, th) : null, rangeEnd: th, todayHad: th > y,
-    behind, behindText: u.n(behind), prog, next, risk, newWeek: t === s && t !== S.exam.start,
-  };
+  return { ...base, phase: 'study', range: th > from ? u.r(from + 1, th) : null, todayHad: th > y, newWeek: t === s && t !== S.exam.start };
 }
 
-// ---------- 状態の見本 ----------
+// ---------- 場面の見本 ----------
 const PRESETS = {
   start:      { label: '初日（予定どおり）', f: () => { S.today = S.exam.start; } },
   behind:     { label: '週の途中で遅れ', f: () => { S.today = d2n('2026-11-12'); S.pos.a = P0(S.mats[0])(S.today - 1) - 6; } },
+  ahead:      { label: '予定より先に進んでいる', f: () => { S.today = d2n('2026-11-12'); S.pos.a = P0(S.mats[0])(S.today) + 5; } },
   bufBehind:  { label: '予備日・遅れあり', f: () => { S.today = d2n('2026-11-15'); S.pos.a = P0(S.mats[0])(S.today - 1) - 6; } },
   bufOk:      { label: '予備日・遅れなし', f: () => { S.today = d2n('2026-11-15'); } },
   newWeek:    { label: '新しい週（遅れを配り直し）', f: () => { S.today = d2n('2026-11-16'); const p = P0(S.mats[0])(S.today - 1) - 6; S.pos.a = p; S.weekStartPos.a = p; } },
@@ -220,140 +258,193 @@ function applyPreset(k) {
   if (S.today === S.exam.start) for (const m of S.mats) S.pos[m.id] = m.done0;
 }
 
-// ---------- 根拠の一言 ----------
-const TIPS = {
-  proximal: '大きな目標は、今日の小さな範囲に分けると取りかかりやすく、自信にもつながることが分かっています。',
-  intent: 'いつ・どこでやるかを先に決めておくと、実際に取りかかれる割合が上がることが分かっています。',
-  fallacy: '人は、かかる時間を少なく見積もりがちです。だから週に1日、遅れを取り戻すための予備日を取っています。',
-  fresh: '週の初めは、仕切り直しにちょうどよい区切りです。先週の遅れは今週の予定に配り直しました。',
-  lapse: '1日できなくても、習慣は崩れないことが分かっています。まず1ページだけ開いてみましょう。',
-  progFirst: '前半は「どれだけ終わったか」を見るほうが、続けやすいことが分かっています。',
-  progSecond: '後半は「あと少し」を見るほうが、最後まで続けやすいことが分かっています。表示を「あと何問」に切り替えました。',
-  retrieval: '読み返すより、解き直すほうが記憶に残ることが分かっています。',
-  spacing: '一度に詰め込むより、日を分けて学ぶほうが記憶に残ります。だから試験日までの毎日に割り振っています。',
+// ---------- 根拠の一言（1画面に1つ。短く） ----------
+const WHY = {
+  proximal: ['大きな目標は、小さく分けると取りかかりやすくなります。', 'proximal'],
+  intent: ['いつ・どこでやるかを決めておくと、取りかかれる割合が上がります。', 'intent'],
+  fallacy: ['人は、かかる時間を少なく見積もりがちです。だから週に1日、予備日を取っています。', 'fallacy'],
+  fresh: ['週の初めは、仕切り直しにちょうどよい区切りです。', 'lapse'],
+  lapse: ['1日できなくても、習慣は崩れません。まず1ページだけ開いてみましょう。', 'lapse'],
+  progFirst: ['前半は「どれだけ終わったか」を見るほうが、続けやすくなります。', 'small'],
+  progSecond: ['後半は「あと少し」を見るほうが、最後まで続けやすくなります。', 'small'],
+  retrieval: ['読み返すより、解き直すほうが記憶に残ります。', 'retrieval'],
+  spacing: ['一度に詰め込むより、日を分けて学ぶほうが記憶に残ります。', 'spacing'],
 };
-const TIP_METHOD = { proximal: 'proximal', intent: 'intent', fallacy: 'fallacy', fresh: 'lapse', lapse: 'lapse', progFirst: 'small', progSecond: 'small', retrieval: 'retrieval', spacing: 'spacing' };
-const tip = k => `<div class="tip"><span class="label">根拠</span>${TIPS[k]} <a href="#" data-go="methods" data-anchor="${TIP_METHOD[k]}">詳しく</a></div>`;
+const why = k => k ? `<div class="why">${WHY[k][0]} <a href="#" data-go="methods" data-anchor="${WHY[k][1]}">根拠 ›</a></div>` : '';
 
-// ---------- 画面 ----------
-let view = 'home', preset = 'start';
+// ---------- アイコン ----------
+const ICON = {
+  today: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>',
+  remain: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/></svg>',
+  progress: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 20V12M12 20V5M19 20v-9"/></svg>',
+  gear: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+};
+
+// ---------- 画面の状態 ----------
+const TABS = ['today', 'remain', 'progress'];
+let view = 'today', preset = 'start', sheet = null;
 const params = new URLSearchParams(location.search);
 if (params.get('view')) view = params.get('view');
 if (params.get('preset')) preset = params.get('preset');
+if (params.get('sheet')) sheet = { id: params.get('sheet'), v: null };
 const showBar = params.get('bar') !== '0';
 applyPreset(preset);
 
 function bar() {
   if (!showBar) return '';
-  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', home: 'ホーム', widgets: 'ウィジェット・通知', methods: '進め方' };
+  const views = { setup1: '設定①', setup2: '設定②', setup3: '設定③', setup4: '設定④', today: '今日', remain: '残り', progress: '進み具合', settings: '設定', widgets: 'ウィジェット・通知', methods: '進め方' };
   return `<div class="bar">
     <div class="row">画面 <select id="v">${Object.entries(views).map(([k, l]) => `<option value="${k}" ${k === view ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-    <div class="row">場面 <select id="p">${Object.entries(PRESETS).map(([k, o]) => `<option value="${k}" ${k === preset ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
+    <div class="row">場面 <select id="p">${preset ? '' : '<option selected>（日付を進めた）</option>'}${Object.entries(PRESETS).map(([k, o]) => `<option value="${k}" ${k === preset ? 'selected' : ''}>${o.label}</option>`).join('')}</select>
       <button id="nextDay">翌日へ</button></div>
     <div class="row note">試作の操作バー（アプリの一部ではない）。今日: ${mdw(S.today)}</div>
   </div>`;
 }
-
-function header() {
-  const t = Math.max(S.today, S.exam.start);
-  const h = sumH(t, S.exam.date);
-  return `<header><div class="exam">${S.exam.name}まで　勉強に使える時間</div>
-    <h1>あと ${h}<small>時間</small></h1>
-    <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></header>`;
+const topBar = left => `<div class="top"><span class="date">${left}</span><a href="#" class="gear" data-go="settings" aria-label="設定">${ICON.gear}</a></div>`;
+function tabs() {
+  const risky = S.mats.some(m => stateOf(m).risk !== null && stateOf(m).risk !== undefined);
+  const t = (k, l) => `<a href="#" data-go="${k}" class="${view === k ? 'on' : ''}">${ICON[k]}${l}${k === 'progress' && risky ? '<span class="badge"></span>' : ''}</a>`;
+  return `<nav class="tabs">${t('today', '今日')}${t('remain', '残り')}${t('progress', '進み具合')}</nav>`;
 }
 
-function home() {
+// ---------- 今日 ----------
+function today() {
   const t = S.today, w = S.week[wd(t)];
   const sts = S.mats.map(m => [m, stateOf(m)]);
   const ph = sts[0][1].phase;
-  let out = header();
-  const tips = [];
+  let out = topBar(mdw(t));
 
   if (ph === 'before') {
-    out += `<div class="card"><div class="banner">${mdw(S.exam.start)} から始めます</div>
-      <div class="big">それまでは何もしなくて大丈夫です。</div></div>`;
-    return out + links();
+    return out + `<div class="calm"><div class="big">${mdw(S.exam.start)} から始めます</div>
+      <div class="small">それまでは、何もしなくて大丈夫です。</div></div>`;
   }
 
   if (ph === 'review') {
-    out += `<div class="card"><div class="banner">復習期間（あと${sts[0][1].daysLeft}日）</div>
-      <div class="when">${mdw(t)} ${w.t}〜 ${w.p}</div>`;
-    for (const [m, s] of sts) {
-      out += `<div class="item"><div class="name">${m.name}　今日の復習</div>` +
-        (s.range ? `<div class="range">${s.range}</div><div class="btns"><button class="btn">終わった</button></div>` : `<div class="next">今日はなし</div>`) + `</div>`;
-    }
-    out += `<div class="muted" style="margin-top:8px">復習期間の記録は、付けなくてもかまいません。</div></div>`;
-    tips.push('retrieval');
-    return out + tips.map(tip).join('') + links();
+    out += `<div class="title">今日の復習</div><div class="subtitle">${w.t}〜 ${w.p}・復習期間はあと${sts[0][1].daysLeft}日</div>`;
+    for (const [m, s] of sts) if (s.range) out += `<div class="task"><div class="name">${m.name}</div><div class="range">${s.range}</div><button class="btn">終わった</button></div>`;
+    return out + `<div class="rest">復習期間は、記録を付けなくてもかまいません。</div>` + why('retrieval');
   }
 
   const buffer = ph === 'buffer';
-  const allOk = buffer && sts.every(([, s]) => !s.catchup);
-  out += `<div class="card">`;
-  if (buffer) out += `<div class="banner">今日は予備日</div>`;
-  else if (sts[0][1].newWeek) out += `<div class="banner">新しい週です</div>`;
-  if (!allOk) out += `<h2>${buffer ? '取り戻し' : '今日やること'}</h2>`;
-  out += `<div class="when">${mdw(t)} ${w.t}〜 ${w.p}</div>`;
-  if (allOk) out += `<div class="done">遅れはありません</div><div class="big" style="margin-top:4px">休んでも、先に進んでもOKです。</div>`;
-  for (const [m, s] of allOk ? [] : sts) {
-    out += `<div class="item"><div class="name">${m.name}</div>`;
-    if (buffer) {
-      out += s.catchup ? `<div class="range">${s.catchup}</div>${buttons(m.id, s.catchEnd)}` : `<div class="done">遅れなし</div>`;
-    } else if (s.range) {
-      out += `<div class="range">${s.range}</div>${buttons(m.id, s.rangeEnd)}`;
-    } else if (s.todayHad) {
-      out += `<div class="done">今日の分は終わりました</div>`;
-    } else {
-      out += `<div class="next">今日はなし${s.next ? `（次は ${mdw(s.next)}）` : ''}</div>`;
+  const s0 = sts[0][1];
+
+  if (buffer && sts.every(([, s]) => !s.range)) {
+    return out + `<div class="calm"><div class="big">今日は予備日です</div>
+      <div class="small">今週は遅れがありません。<br>休んでも、先に進んでもかまいません。</div></div>` + why('fallacy');
+  }
+
+  out += `<div class="title">${buffer ? '今日は予備日' : s0.newWeek ? '新しい週です' : '今日やること'}</div>`;
+  out += `<div class="subtitle">${w.t}〜 ${w.p}${buffer ? '・今週の遅れを取り戻す日' : ''}</div>`;
+
+  for (const [m, s] of sts) {
+    const u = U[m.unit];
+    if (s.range) {
+      out += `<div class="task"><div class="name">${m.name}</div><div class="range">${s.range}</div>
+        <button class="btn" data-done="${m.id}" data-end="${s.rangeEnd}">終わった</button>
+        <button class="btn ghost" data-sheet="${m.id}">進んだところを入れる</button></div>`;
+    } else if (!buffer && (s.todayHad || s.ahead > 0)) {
+      out += `<div class="task"><div class="name">${m.name}</div>
+        <div class="doneline">✓ 今日の分は終わりました</div>
+        <div class="ahead">${u.thru(S.pos[m.id])}終わっています${s.ahead > 0 ? `（予定より ${u.n(s.ahead)} 先）` : ''}</div>
+        <button class="btn ghost" data-sheet="${m.id}">もっと進めた</button></div>`;
     }
-    out += `</div>`;
   }
-  out += `</div>`;
+  const idle = sts.filter(([, s]) => !s.range && !(!buffer && (s.todayHad || s.ahead > 0)));
+  if (idle.length) out += `<div class="rest">${idle.map(([m]) => m.name).join('・')}は、今日はお休みです。</div>`;
 
-  // 週の様子と進み具合
-  const s0 = sts[0][1], m0 = sts[0][0];
-  out += `<div class="card"><div class="status">`;
-  if (!buffer) {
+  let k = null;
+  if (buffer) k = 'fallacy';
+  else if (s0.newWeek && s0.redistributed) k = 'fresh';
+  else if (sts.some(([, s]) => s.behind > 0)) k = 'lapse';
+  else if (S.today === S.exam.start) k = 'proximal';
+  return out + why(k);
+}
+
+// ---------- 残り ----------
+function remain() {
+  const t = Math.max(S.today, S.exam.start);
+  const h = sumH(t, S.exam.date);
+  const rs = reviewStart();
+  const studyH = t < rs ? sumH(t, rs) : 0;
+  const reviewH = h - studyH;
+  const usedH = sumH(S.exam.start, t);
+  const tot = usedH + h;
+  const pct = x => `${(x / tot * 100).toFixed(1)}%`;
+  return topBar(S.exam.name) + `<div class="remain">
+      <div class="label">${S.exam.name}まで、勉強に使える時間</div>
+      <div class="num">${h}<small>時間</small></div>
+      <div class="sub">試験日 ${mdw(S.exam.date)}・あと${S.exam.date - S.today}日</div></div>
+    <div class="split"><div class="track"><div style="width:${pct(usedH)};background:#c7c7cc"></div><div class="study" style="width:${pct(studyH)}"></div><div class="review" style="width:${pct(reviewH)}"></div></div>
+      <div class="legend"><span><i class="dot" style="background:#2f6fde"></i>新しい範囲 ${studyH}時間</span><span><i class="dot" style="background:#9db8ef"></i>復習 ${reviewH}時間</span></div></div>` + why('spacing');
+}
+
+// ---------- 進み具合 ----------
+function progress() {
+  const t = S.today;
+  const sts = S.mats.map(m => [m, stateOf(m)]);
+  const ph = sts[0][1].phase;
+  let out = topBar(S.exam.name) + `<div class="title">進み具合</div>`;
+  if (ph === 'before') return out + `<div class="week">${mdw(S.exam.start)} から始めます</div>`;
+
+  if (ph === 'study' || ph === 'buffer') {
     const late = sts.filter(([, s]) => s.behind > 0);
-    out += late.length
-      ? `<span class="warn">今週は ${late.map(([m, s]) => s.behindText).join('・')}遅れ → ${WD[S.bufferWd]}曜に取り戻します</span>`
-      : `<span class="ok">今週は予定どおり</span>`;
-  } else out += `<span class="ok">予備日のあと、新しい週が始まります</span>`;
-  out += `</div><div class="status progs" style="margin-top:6px">${sts.map(([m, s]) => `<span class="prog">${m.name}：${s.prog}</span>`).join('')}</div></div>`;
-
-  // 間に合わない見込み
-  const risky = sts.filter(([, s]) => s.risk !== null);
-  if (risky.length) {
-    const [m, s] = risky[0];
-    out += `<div class="card risk"><div class="banner">このペースだと間に合わない見込みです</div>
-      <p>${m.name}は、復習期間に入るまでに ${U[m.unit].r(s.risk, s.risk)}あたりまでの見込みです（${U[m.unit].n(m.end)}中）。</p>
-      <div class="btns"><button class="btn primary">対策を見る</button></div></div>`;
-    tips.push('fallacy');
+    const ahead = sts.filter(([, s]) => s.ahead > 0);
+    if (late.length) out += `<div class="week late">今週は ${late.map(([m, s]) => `${m.name} ${U[m.unit].n(s.behind)}`).join('・')} 遅れ<span class="note">${ph === 'buffer' ? '今日の予備日で取り戻しましょう' : `${WD[S.bufferWd]}曜の予備日で取り戻します`}</span></div>`;
+    else if (ahead.length) out += `<div class="week ok">予定より先に進んでいます<span class="note">${ahead.map(([m, s]) => `${m.name} ${U[m.unit].n(s.ahead)}`).join('・')} 先。予備日のあと、先の日の量を減らします</span></div>`;
+    else out += `<div class="week ok">今週は予定どおり</div>`;
+  } else {
+    out += `<div class="week ok">復習期間です<span class="note">試験まであと${S.exam.date - t}日</span></div>`;
   }
 
-  if (buffer) tips.push('fallacy');
-  else if (s0.newWeek) tips.push('fresh');
-  else if (s0.behind > 0) tips.push('lapse');
-  else if (t >= secondHalfStart() && t - secondHalfStart() <= 2) tips.push('progSecond');
-  else if (t === S.exam.start) tips.push('proximal');
-  return out + tips.slice(0, 1).map(tip).join('') + links();
+  const risky = sts.find(([, s]) => s.risk !== null && s.risk !== undefined);
+  if (risky) {
+    const [m, s] = risky;
+    out += `<div class="riskbox"><div class="h">このペースだと間に合わない見込みです</div>
+      <p>${m.name}は、復習期間に入るまでに ${U[m.unit].at(s.risk)} あたりまでの見込みです（全${U[m.unit].n(m.end)}）。</p>
+      <button class="btn">対策を見る</button></div>`;
+  }
+
+  const firstHalf = t < secondHalfStart();
+  for (const [m] of sts) {
+    const pos = S.pos[m.id], u = U[m.unit];
+    const pct = Math.round(pos / m.end * 100);
+    const right = firstHalf ? (pos === 0 ? 'これから' : `${u.thru(pos)}・${pct}%`) : (pos >= m.end ? '終わりました' : u.left(m.end - pos));
+    out += `<div class="mat"><div class="row1"><b>${m.name}</b><span>${right}</span></div><div class="bar2"><i style="width:${pct}%"></i></div></div>`;
+  }
+  let k = risky ? 'fallacy' : firstHalf ? 'progFirst' : 'progSecond';
+  return out + why(k);
 }
 
-function buttons(id, end) {
-  return `<div class="btns"><button class="btn primary" data-done="${id}" data-end="${end}">終わった</button><button class="btn" data-partial="${id}">途中まで</button></div>`;
+// ---------- 記録のシート ----------
+function hintHtml(m, v) {
+  const u = U[m.unit], end = stateOf(m).rangeEnd ?? v, diff = v - end;
+  return diff > 0 ? `<div id="hint" class="hint ahead">今日の予定より ${u.n(diff)} 先です</div>`
+    : diff < 0 ? `<div id="hint" class="hint late">今日の予定まで あと${u.n(-diff)}。残りは予備日で取り戻せます</div>`
+    : `<div id="hint" class="hint ahead">今日の予定どおりです</div>`;
 }
-const links = () => `<div class="links"><a href="#" data-go="methods">このアプリの進め方</a><a href="#" data-go="widgets">ウィジェット・通知</a></div>`;
+function sheetHtml() {
+  if (!sheet) return '';
+  const m = S.mats.find(x => x.id === sheet.id), u = U[m.unit], s = stateOf(m);
+  if (sheet.v === null) sheet.v = Math.max(S.pos[m.id], s.rangeEnd ?? S.pos[m.id]);
+  const v = sheet.v, hint = hintHtml(m, v);
+  return `<div class="sheet-bg" data-close="1"><div class="sheet">
+    <div class="h">${m.name}</div><div class="s">どこまで終わりましたか</div>
+    <div class="stepper"><button data-step="-1">−</button><div class="v">${u.at('')}<input id="sv" type="number" inputmode="numeric" value="${v}" min="0" max="${m.end}">${u.after || ''}</div><button data-step="1">＋</button></div>
+    <div class="s" style="margin-top:-12px;margin-bottom:12px">数字を押すと直接入れられます</div>
+    ${hint}
+    <button class="btn" data-save="1">記録する</button></div></div>`;
+}
 
+// ---------- 最初の設定 ----------
 function steps(k) { return `<div class="steps">${[1, 2, 3, 4].map(i => `<span class="${i <= k ? 'on' : ''}"></span>`).join('')}</div>`; }
-
 function setup1() {
   return `<div class="setup">${steps(1)}<h1>どの試験を受けますか</h1>
     <p class="lead">試験日までの、勉強に使える時間を数えます。</p>
     <div class="card"><div class="field">試験名<span class="v">${S.exam.name}</span></div>
       <div class="field">試験日<span class="v">2027/1/30（土）</span></div></div>
     <div class="card"><div class="field">勉強を始める日<span class="v">今日（11/3）</span></div>
-      <div class="hint">日付が2つある試験は、2つに分けて登録し、2つ目の始める日を1つ目の試験日の後にしてください。</div></div>
-    <button class="btn primary next-btn" data-go="setup2">次へ</button></div>`;
+      <div class="hint2">日付が2つある試験は、2つに分けて登録し、2つ目の始める日を1つ目の試験日の後にしてください。</div></div>
+    <button class="btn next-btn" data-go="setup2">次へ</button></div>`;
 }
 function setup2() {
   return `<div class="setup">${steps(2)}<h1>何で勉強しますか</h1>
@@ -363,8 +454,8 @@ function setup2() {
       <div class="field">範囲<span class="v">p.1 〜 p.360</span></div>
       <div class="field">もう終わっているところ<span class="v">なし</span></div></div>
     <p class="lead muted">2冊目の教材は、あとから足せます。</p>
-    ${tip('proximal')}
-    <button class="btn primary next-btn" data-go="setup3">次へ</button></div>`;
+    ${why('proximal')}
+    <button class="btn next-btn" data-go="setup3">次へ</button></div>`;
 }
 function setup3() {
   const row = (l, i) => `<div>${l}</div><div class="c">${S.week[i].h}時間</div><div class="c">${S.week[i].t}〜</div><div class="c">${S.week[i].p}</div>`;
@@ -373,80 +464,94 @@ function setup3() {
     <div class="card"><div class="wk"><div></div><div class="h">時間</div><div class="h">始める時刻</div><div class="h">場所</div>
       ${row('平日', 1)}${row('土', 6)}${row('日', 0)}</div>
       <div class="linkish">曜日ごとに変える</div></div>
-    ${tip('intent')}
-    <button class="btn primary next-btn" data-go="setup4">次へ</button></div>`;
+    ${why('intent')}
+    <button class="btn next-btn" data-go="setup4">次へ</button></div>`;
 }
 function setup4() {
   const h = sumH(S.exam.start, S.exam.date);
   const rh = sumH(reviewStart(), S.exam.date);
   return `<div class="setup confirm">${steps(4)}<h1>この計画で始めます</h1>
-    <div class="card"><div class="big">試験まで <b>${totalDays()}</b> 日</div>
-      <div class="big">勉強に使える時間 <b>${h}</b> 時間</div></div>
+    <div class="card"><div class="bignum">試験まで <b>${totalDays()}</b> 日</div>
+      <div class="bignum">勉強に使える時間 <b>${h}</b> 時間</div></div>
     <div class="card"><ul>
       <li>試験前の<b>${reviewLen()}日間</b>（${rh}時間）は、新しい範囲に進まず<b>復習</b>にあてます</li>
       <li>毎週<b>${WD[S.bufferWd]}曜</b>は<b>予備日</b>にします。遅れたときに取り戻す日です</li>
       <li>残りの日に、空き時間に合わせて範囲を割り振ります</li></ul>
       <div class="muted">復習期間と予備日は、あとで変えられます。</div></div>
-    ${tip('fallacy')}
-    <button class="btn primary next-btn" data-go="home">始める</button></div>`;
+    ${why('fallacy')}
+    <button class="btn next-btn" data-go="today">始める</button></div>`;
 }
 
+// ---------- 設定・進め方・見本 ----------
+function settings() {
+  return `<a class="back" href="#" data-go="today">‹ 戻る</a><div class="title">設定</div>
+    <div class="list"><div>試験<span>${S.exam.name}・${md(S.exam.date)}</span></div><div>教材<span>${S.mats.length}冊</span></div>
+      <div>曜日ごとの時間・時刻・場所<span>›</span></div><div>例外の日<span>›</span></div></div>
+    <div class="list"><div>予備日<span>毎週${WD[S.bufferWd]}曜</span></div><div>復習期間<span>試験前の${reviewLen()}日間</span></div><div>お知らせ<span>オン</span></div></div>
+    <div class="list"><a href="#" data-go="methods">このアプリの進め方<span>›</span></a><a href="#" data-go="widgets">ウィジェット・通知（見本）<span>›</span></a></div>`;
+}
 const METHODS = [
-  { id: 'proximal', t: '大きな目標を、今日の小さな範囲に分ける', what: '試験までの範囲を、1日ごとの「今日やる範囲」に分けます。', why: '遠い大きな目標だけを持つより、近くて小さな目標に分けたほうが、自信がつき、成績も上がりました。', app: 'ホームの「今日やること」', src: 'Bandura & Schunk (1981)' },
+  { id: 'proximal', t: '大きな目標を、今日の小さな範囲に分ける', what: '試験までの範囲を、1日ごとの「今日やる範囲」に分けます。', why: '遠い大きな目標だけを持つより、近くて小さな目標に分けたほうが、自信がつき、成績も上がりました。', app: '「今日」の画面', src: 'Bandura & Schunk (1981)' },
   { id: 'intent', t: 'いつ・どこでやるかを先に決める', what: '「平日 21:00〜 リビングで」のように、始める時刻と場所を決めておきます。', why: '「いつ・どこで・何をするか」を先に決めておくと、実際に取りかかる割合が上がることが、多くの研究で確かめられています。', app: '曜日ごとの時刻と場所。その時刻にお知らせします', src: 'Gollwitzer (1999); Gollwitzer & Sheeran (2006)' },
   { id: 'fallacy', t: '予備日を取る', what: '週に1日、新しい範囲を入れない日を取り、遅れを取り戻す日にします。', why: '人は、かかる時間をいつも少なく見積もります（計画錯誤）。余裕を先に取っておくと、計画が崩れにくくなります。', app: '週に1日の予備日と、ペースの見込み', src: 'Kahneman & Tversky (1979); Buehler ほか (1994)' },
   { id: 'spacing', t: '毎日に分けて学ぶ', what: '試験直前にまとめてやらず、試験日までの毎日に分けます。', why: '一度に詰め込むより、日を分けて学ぶほうが記憶に残ります。', app: '試験日までの毎日への割り振り', src: 'Cepeda ほか (2006); Dunlosky ほか (2013)' },
-  { id: 'monitor', t: 'どこまで進んだかを記録する', what: '終わったら「終わった」を押して、進み具合を記録します。', why: '進み具合を記録して確かめると、目標を達成しやすくなります。', app: '「終わった」「途中まで」', src: 'Harkin ほか (2016)' },
-  { id: 'small', t: '前半は「終わった量」、後半は「残りの量」を見る', what: '前半は「問12まで終わった」、後半は「あと8問」と、進み具合の見せ方を変えます。', why: '目標の前半は終わった量を、後半は残りの量を見るほうが、続けやすいことが分かっています。', app: 'ホームの進み具合（自動で切り替わります）', src: 'Koo & Fishbach (2012)' },
+  { id: 'monitor', t: 'どこまで進んだかを記録する', what: '終わったら「終わった」を押して、進み具合を記録します。', why: '進み具合を記録して確かめると、目標を達成しやすくなります。', app: '「終わった」と、どこまで進んだかの記録', src: 'Harkin ほか (2016)' },
+  { id: 'small', t: '前半は「終わった量」、後半は「残りの量」を見る', what: '前半は「問12まで」、後半は「あと8問」と、進み具合の見せ方を変えます。', why: '目標の前半は終わった量を、後半は残りの量を見るほうが、続けやすいことが分かっています。', app: '「進み具合」の画面（自動で切り替わります）', src: 'Koo & Fishbach (2012)' },
   { id: 'lapse', t: '1日休んでも気にしない', what: 'できない日があっても、次の日に戻れば大丈夫です。週の初めは仕切り直しの日にします。', why: '習慣は1日休んでも崩れませんでした。また、週の初めのような区切りの日は、目標に取り組み直しやすくなります。', app: '予備日のあとの「新しい週」。連続日数で責めません', src: 'Lally ほか (2010); Dai, Milkman & Riis (2014)' },
   { id: 'retrieval', t: '読み返すより、解き直す', what: '復習期間には、読み返すより問題を解き直します。', why: '自分で思い出すことは、読み返すよりずっと記憶に残ります。', app: '復習期間の「今日の復習」', src: 'Roediger & Karpicke (2006); Dunlosky ほか (2013)' },
 ];
+let backTo = 'today';
 function methods() {
-  return `<a class="back" href="#" data-go="home">‹ 戻る</a>
-    <header><h1 style="font-size:28px">このアプリの進め方</h1>
-    <div class="sub">このアプリの進め方は、研究で効果が確かめられた方法に基づいています。</div></header>
+  return `<a class="back" href="#" data-go="${backTo}">‹ 戻る</a><div class="title">このアプリの進め方</div>
+    <div class="subtitle" style="line-height:1.5">このアプリの進め方は、研究で効果が確かめられた方法に基づいています。</div>
     ${METHODS.map(m => `<div class="card method" id="m-${m.id}"><h3>${m.t}</h3><dl>
       <dt>何をするか</dt><dd>${m.what}</dd><dt>なぜ効くか</dt><dd>${m.why}</dd>
       <dt>このアプリでは</dt><dd>${m.app}</dd><dt>出典</dt><dd>${m.src}</dd></dl></div>`).join('')}
     <p class="cap">※試作のため、出典はまだ原典で確かめていません。</p>`;
 }
-
 function widgets() {
   const m = S.mats[0], s = stateOf(m), w = S.week[wd(S.today)];
   const h = sumH(Math.max(S.today, S.exam.start), S.exam.date);
-  const r = s.range || s.catchup || '—';
-  const lateMsg = `まず1ページだけ開いてみましょう。${m.name} ${U[m.unit].r(S.pos[m.id] + 1, S.pos[m.id] + 1)}から`;
-  return `<a class="back" href="#" data-go="home">‹ 戻る</a>
+  const r = s.range || '—';
+  return `<a class="back" href="#" data-go="settings">‹ 戻る</a>
     <p class="cap">ロック画面（ウィジェットと通知）</p>
-    <div class="wall"><div class="date">${mdw(S.today)}</div><div class="clock">${w.t}</div>
+    <div class="wall"><div class="wdate">${mdw(S.today)}</div><div class="clock">${w.t}</div>
       <div class="inline">${h}h・${r}</div>
       <div class="notif"><span class="t">今</span><b>試験カウントダウン</b><br>${w.t} です。${w.p}で${m.name} ${r.split('〜')[0]}〜</div>
-      <div class="notif"><span class="t">遅れている日</span><b>試験カウントダウン</b><br>${lateMsg}</div></div>
-    <p class="cap">ホーム画面のウィジェット（小）</p>
-    <div class="wall" style="display:flex;gap:14px"><div class="widget"><div class="e">${S.exam.name}まで</div>
+      <div class="notif"><span class="t">遅れている日</span><b>試験カウントダウン</b><br>まず1ページだけ開いてみましょう。${m.name} ${U[m.unit].at(S.pos[m.id] + 1)}から</div></div>
+    <p class="cap">ホーム画面のウィジェット（小）。押すと「残り」が開く</p>
+    <div class="wall"><div class="widget"><div class="e">${S.exam.name}まで</div>
       <div class="n">${h}<small>時間</small></div><div class="r">今日 ${r}</div></div></div>`;
 }
 
-const VIEWS = { home, setup1, setup2, setup3, setup4, methods, widgets };
+// ---------- 描画と操作 ----------
+const VIEWS = { today, remain, progress, setup1, setup2, setup3, setup4, settings, methods, widgets };
 function render(anchor) {
-  document.getElementById('app').innerHTML = bar() + VIEWS[view]();
-  window.scrollTo(0, 0);
-  if (anchor) { const el = document.getElementById('m-' + anchor); if (el) el.scrollIntoView(); }
+  const body = VIEWS[view]();
+  document.getElementById('app').innerHTML = bar() + body + (TABS.includes(view) ? tabs() : '') + sheetHtml();
+  if (anchor) { const el = document.getElementById('m-' + anchor); if (el) el.scrollIntoView(); } else if (!sheet) window.scrollTo(0, 0);
 }
+document.addEventListener('input', e => {
+  if (e.target.id !== 'sv') return;
+  const m = S.mats.find(x => x.id === sheet.id);
+  sheet.v = Math.min(m.end, Math.max(0, Number(e.target.value) || 0));
+  document.getElementById('hint').outerHTML = hintHtml(m, sheet.v);
+});
 document.addEventListener('change', e => {
   if (e.target.id === 'v') { view = e.target.value; render(); }
-  if (e.target.id === 'p') { preset = e.target.value; applyPreset(preset); view = view.startsWith('setup') || view === 'methods' ? 'home' : view; render(); }
+  if (e.target.id === 'p' && PRESETS[e.target.value]) { preset = e.target.value; applyPreset(preset); if (!TABS.includes(view)) view = 'today'; render(); }
 });
 document.addEventListener('click', e => {
-  const g = e.target.closest('[data-go]');
-  if (g) { e.preventDefault(); view = g.dataset.go; render(g.dataset.anchor); return; }
-  if (e.target.dataset.done) { S.pos[e.target.dataset.done] = Number(e.target.dataset.end); render(); return; }
-  if (e.target.dataset.partial) {
-    const id = e.target.dataset.partial, v = prompt('今どこまで終わりましたか（番号）', S.pos[id]);
-    if (v !== null && !isNaN(Number(v))) { S.pos[id] = Number(v); render(); }
-    return;
-  }
-  if (e.target.id === 'nextDay') {
+  const el = e.target.closest('[data-go],[data-done],[data-sheet],[data-step],[data-save],[data-close],#nextDay');
+  if (!el) return;
+  e.preventDefault();
+  if (el.dataset.go) { if (el.dataset.go === 'methods' && view !== 'methods') backTo = view; view = el.dataset.go; render(el.dataset.anchor); return; }
+  if (el.dataset.done) { S.pos[el.dataset.done] = Math.max(S.pos[el.dataset.done], Number(el.dataset.end)); render(); return; }
+  if (el.dataset.sheet) { sheet = { id: el.dataset.sheet, v: null }; render(); return; }
+  if (el.dataset.step) { const m = S.mats.find(x => x.id === sheet.id); sheet.v = Math.min(m.end, Math.max(0, sheet.v + Number(el.dataset.step))); render(); return; }
+  if (el.dataset.save) { S.pos[sheet.id] = sheet.v; sheet = null; render(); return; }
+  if (el.dataset.close && e.target === el) { sheet = null; render(); return; }
+  if (el.id === 'nextDay') {
     const t = S.today;
     if (isBuffer(t)) for (const m of S.mats) S.weekStartPos[m.id] = S.pos[m.id]; // 予備日のあとに配り直す
     S.today = t + 1; preset = ''; render();
